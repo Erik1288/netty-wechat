@@ -1,10 +1,12 @@
 package com.eric.client;
 
+import com.eric.codec.Packet;
+import com.eric.codec.PacketCodec;
+import com.eric.command.LoginRequestPacket;
+import com.eric.command.LoginResponsePacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
-import java.nio.charset.Charset;
 
 /**
  * User: Eric
@@ -13,20 +15,28 @@ import java.nio.charset.Charset;
 public class FirstClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        // 1. 获取数据
-        ByteBuf byteBuf = ctx.alloc().buffer();
-        byteBuf.writeBytes(("hello world").getBytes());
+        LoginRequestPacket loginRequestPacket = new LoginRequestPacket();
+        loginRequestPacket.setUserId(1);
+        loginRequestPacket.setUsername("eric1");
+        loginRequestPacket.setPassword("psd");
 
-        // 2. 写数据
+        ByteBuf byteBuf = PacketCodec.encode(loginRequestPacket);
         ctx.channel().writeAndFlush(byteBuf);
-
-        System.out.println("Client: sending " + "hello world");
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf response = (ByteBuf) msg;
+        ByteBuf responseByteBuf = (ByteBuf) msg;
 
-        System.out.println("Client: receiving " + response.toString(Charset.forName("utf-8")));
+        Packet packet = PacketCodec.decode(responseByteBuf);
+
+        if (packet instanceof LoginResponsePacket) {
+            LoginResponsePacket responsePacket = (LoginResponsePacket) packet;
+            if (responsePacket.isSuccess()) {
+                System.out.println("登录成功");
+            } else {
+                System.out.println("登录失败");
+            }
+        }
     }
 }
